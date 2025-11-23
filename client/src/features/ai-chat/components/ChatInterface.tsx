@@ -72,6 +72,9 @@ export const ChatInterface = () => {
                   ? 'bg-purple-600/10 text-purple-100 border border-purple-500/20 rounded-tr-none' 
                   : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-none'
               }`}>
+                <div className="text-xs opacity-50 mb-1">
+                  {msg.username || (msg.role === 'user' ? 'Usuario' : 'AI Agent')}
+                </div>
                 {msg.content}
               </div>
             </div>
@@ -94,22 +97,24 @@ export const ChatInterface = () => {
 
       {/* Input */}
       <div className="p-4 md:p-6 bg-slate-800 border-t border-slate-700">
-        <div className="flex gap-2 md:gap-4 max-w-4xl mx-auto">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder="Ask about Hedera transactions..."
-            className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 focus-visible:ring-blue-500 h-12 md:h-14 text-base md:text-lg px-4 md:px-6 rounded-lg md:rounded-xl"
-          />
-          <Button 
-            onClick={handleSend} 
-            disabled={!inputValue.trim() || isLoading}
-            size="icon"
-            className="bg-blue-600 hover:bg-blue-700 h-12 w-12 md:h-14 md:w-14 rounded-lg md:rounded-xl shrink-0 transition-all hover:scale-105 active:scale-95"
-          >
-            <Send className="w-5 h-5 md:w-6 md:h-6" />
-          </Button>
+        <div className="max-w-4xl mx-auto space-y-3">
+          <div className="flex gap-2 md:gap-4">
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Ask about Hedera transactions..."
+              className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 focus-visible:ring-blue-500 h-12 md:h-14 text-base md:text-lg px-4 md:px-6 rounded-lg md:rounded-xl"
+            />
+            <Button 
+              onClick={handleSend} 
+              disabled={!inputValue.trim() || isLoading}
+              size="icon"
+              className="bg-blue-600 hover:bg-blue-700 h-12 w-12 md:h-14 md:w-14 rounded-lg md:rounded-xl shrink-0 transition-all hover:scale-105 active:scale-95"
+            >
+              <Send className="w-5 h-5 md:w-6 md:h-6" />
+            </Button>
+          </div>
         </div>
         <div className="text-center mt-3">
             <p className="text-xs text-slate-500">

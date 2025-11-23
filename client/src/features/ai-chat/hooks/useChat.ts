@@ -4,14 +4,7 @@ import { sendMessageToAI } from '../services/chatService';
 
 export const useChat = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: "Hello! I'm ready to help you interact with Hedera and Chainlink. Ask me anything!",
-      timestamp: Date.now(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -25,7 +18,7 @@ export const useChat = () => {
 
   const toggleChat = () => setIsOpen(!isOpen);
 
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (content: string, username: string = 'User') => {
     if (!content.trim()) return;
 
     const userMessage: Message = {
@@ -33,6 +26,7 @@ export const useChat = () => {
       role: 'user',
       content,
       timestamp: Date.now(),
+      username,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -46,6 +40,7 @@ export const useChat = () => {
         role: 'assistant',
         content: response,
         timestamp: Date.now(),
+        username: 'AI Agent'
       };
 
       setMessages((prev) => [...prev, aiMessage]);
