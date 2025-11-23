@@ -1,0 +1,50 @@
+{
+  "name": "@hederaagentkit/chainlink-plugin",
+  "version": "1.0.0",
+  "description": "Chainlink Price Feed plugin for Hedera Agent Kit - Query real-time cryptocurrency prices from Chainlink oracles on Hedera",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "hedera",
+    "hedera-agent-kit",
+    "chainlink",
+    "oracle",
+    "price-feed",
+    "blockchain",
+    "cryptocurrency",
+    "defi",
+    "plugin"
+  ],
+  "author": "LATAMBuilders",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LATAMBuilders/hedera-xchainlink-plugin.git",
+    "directory": "server/src/plugins/chainlink-plugin"
+  },
+  "homepage": "https://github.com/LATAMBuilders/hedera-xchainlink-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/LATAMBuilders/hedera-xchainlink-plugin/issues"
+  },
+  "peerDependencies": {
+    "@hashgraph/sdk": "^2.49.0",
+    "ethers": "^6.15.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

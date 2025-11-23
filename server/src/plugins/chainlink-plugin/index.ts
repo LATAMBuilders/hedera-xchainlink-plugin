@@ -6,6 +6,11 @@ import getAllPricesTool, {
   GET_ALL_PRICES_TOOL,
 } from "./tools/price-feeds/get-all-prices";
 
+// Export types
+export * from "./types";
+
+// Export plugin
+
 export const chainlinkPlugin: Plugin = {
   name: "chainlink-plugin",
   version: "1.0.0",

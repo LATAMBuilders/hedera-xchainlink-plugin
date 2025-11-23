@@ -6,7 +6,7 @@ import {
   coreTokenPlugin,
   coreQueriesPlugin,
 } from 'hedera-agent-kit';
-import { chainlinkPlugin } from '../plugins/chainlink-plugin';
+import { chainlinkPlugin } from 'hedera-chainlink-plugin';
 import { ChatGroq } from '@langchain/groq';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { createToolCallingAgent, AgentExecutor } from 'langchain/agents';
