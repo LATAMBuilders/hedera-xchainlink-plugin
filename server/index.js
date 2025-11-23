@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const HederaService = require('./hederaService');
+const AIAgent = require('./aiAgent');
 
 const app = express();
 const server = http.createServer(app);
@@ -19,9 +20,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Inicializar servicio de Hedera
+// Inicializar servicios
 const hederaService = new HederaService();
+const aiAgent = new AIAgent();
 let isHederaReady = false;
+let isAIReady = false;
 
 // Ruta principal
 app.get('/', (req, res) => {
@@ -33,6 +36,7 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     hedera: isHederaReady,
+    ai: isAIReady,
     topicId: hederaService.getTopicId() 
   });
 });
@@ -44,16 +48,29 @@ io.on('connection', (socket) => {
   // Enviar el topic ID al cliente
   socket.emit('topicId', hederaService.getTopicId());
 
-  // Recibir mensaje del cliente
+  // Recibir mensaje del cliente - SIEMPRE pasa por AI Agent
   socket.on('chatMessage', async (data) => {
     try {
       const { username, message } = data;
       console.log(`💬 ${username}: ${message}`);
 
-      // Enviar mensaje a Hedera
+      // Primero, guardar el mensaje del usuario en Hedera
       await hederaService.sendMessage(username, message);
 
-      // El mensaje se reenviará a todos los clientes cuando se reciba del topic
+      // Si AI está habilitado, procesar con el agente
+      if (isAIReady) {
+        try {
+          console.log(`🤖 Processing with AI Agent...`);
+          const aiResponse = await aiAgent.processMessage(message);
+          
+          // Guardar respuesta del AI en Hedera
+          await hederaService.sendMessage('AI Agent 🤖', aiResponse);
+        } catch (aiError) {
+          console.error('❌ AI processing error:', aiError);
+          await hederaService.sendMessage('AI Agent 🤖', `⚠️ Error procesando tu mensaje: ${aiError.message}`);
+        }
+      }
+
     } catch (error) {
       console.error('Error handling message:', error);
       socket.emit('error', 'Error al enviar mensaje');
@@ -76,8 +93,22 @@ async function startServer() {
     await hederaService.initialize();
     isHederaReady = true;
 
+    // Inicializar AI Agent (opcional - no falla si no hay OpenAI key)
+    try {
+      if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key-here') {
+        await aiAgent.initialize();
+        isAIReady = true;
+        console.log('✅ AI Agent is ready');
+      } else {
+        console.log('⚠️  OpenAI API key not configured. AI features disabled.');
+      }
+    } catch (aiError) {
+      console.error('⚠️  AI Agent initialization failed:', aiError.message);
+      console.log('💬 Chat will work without AI features');
+    }
+
     // Suscribirse a mensajes del topic
-    hederaService.subscribeToMessages((messageData) => {
+    await hederaService.subscribeToMessages((messageData) => {
       console.log('📨 Received from Hedera:', messageData);
       // Emitir mensaje a todos los clientes conectados
       io.emit('newMessage', messageData);
@@ -88,6 +119,7 @@ async function startServer() {
       console.log(`✅ Server running on port ${PORT}`);
       console.log(`🌐 Open http://localhost:${PORT} in your browser`);
       console.log(`📝 Topic ID: ${hederaService.getTopicId()}`);
+      console.log(`🤖 AI Agent: ${isAIReady ? 'Enabled' : 'Disabled'}`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

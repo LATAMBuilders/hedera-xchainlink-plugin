@@ -51,6 +51,10 @@ class HederaService {
       console.log(`✅ New topic created: ${this.topicId}`);
       console.log(`⚠️  Add this to your .env file: TOPIC_ID=${this.topicId}`);
       
+      // Esperar 3 segundos para que el topic se propague en la red
+      console.log('⏳ Waiting for topic to propagate...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
       return this.topicId;
     } catch (error) {
       console.error('❌ Error creating topic:', error);
@@ -81,25 +85,52 @@ class HederaService {
     }
   }
 
-  subscribeToMessages(onMessageCallback) {
-    try {
-      new TopicMessageQuery()
-        .setTopicId(this.topicId)
-        .setStartTime(0)
-        .subscribe(this.client, null, (message) => {
-          try {
-            const messageString = Buffer.from(message.contents).toString();
-            const messageData = JSON.parse(messageString);
-            onMessageCallback(messageData);
-          } catch (error) {
-            console.error('❌ Error parsing message:', error);
-          }
-        });
+  async subscribeToMessages(onMessageCallback) {
+    const maxRetries = 5;
+    let retries = 0;
 
-      console.log(`👂 Subscribed to topic ${this.topicId}`);
-    } catch (error) {
-      console.error('❌ Error subscribing to messages:', error);
-      throw error;
+    while (retries < maxRetries) {
+      try {
+        // Usar el timestamp actual menos 30 segundos para capturar mensajes recientes
+        const now = new Date();
+        now.setSeconds(now.getSeconds() - 30);
+
+        new TopicMessageQuery()
+          .setTopicId(this.topicId)
+          .setStartTime(now)
+          .subscribe(
+            this.client,
+            (error) => {
+              console.error(`❌ Error in subscription: ${error.message}`);
+            },
+            (message) => {
+              try {
+                const messageString = Buffer.from(message.contents).toString();
+                const messageData = JSON.parse(messageString);
+                onMessageCallback(messageData);
+              } catch (error) {
+                console.error('❌ Error parsing message:', error);
+              }
+            }
+          );
+
+        console.log(`👂 Successfully subscribed to topic ${this.topicId}`);
+        return;
+      } catch (error) {
+        retries++;
+        const waitTime = Math.min(1000 * Math.pow(2, retries), 5000);
+        console.log(
+          `⚠️  Error subscribing to topic ${this.topicId} (attempt ${retries}/${maxRetries}). ` +
+          `Waiting ${waitTime}ms before retry...`
+        );
+        
+        if (retries >= maxRetries) {
+          console.error('❌ Failed to subscribe after max retries:', error);
+          throw error;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
     }
   }
 

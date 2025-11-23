@@ -1,14 +1,31 @@
-# Hedera Simple Chat
+# Hedera AI Chat
 
-Chat en tiempo real usando Hedera Consensus Service (HCS) para almacenar mensajes en blockchain.
+Chat en tiempo real usando Hedera Consensus Service (HCS) con AI Agent integrado usando Langchain y OpenAI.
 
 ## 🚀 Características
 
 - ✅ Mensajes almacenados en Hedera blockchain (inmutables y verificables)
 - ✅ WebSockets para comunicación en tiempo real
-- ✅ Interfaz web simple y responsiva
+- ✅ **AI Agent con acceso a herramientas de Hedera blockchain**
+- ✅ Interfaz web simple y responsiva con dos modos: Chat Normal y AI Agent
 - ✅ Fácil de deployar en Render
 - ✅ Topic ID personalizable
+
+## 🤖 Capacidades del AI Agent
+
+El AI Agent puede ayudarte con:
+- 💰 Consultar balances de HBAR
+- 💸 Transferir HBAR entre cuentas
+- 👤 Crear cuentas nuevas en Hedera
+- 🪙 Crear tokens fungibles
+- 📝 Crear topics de consenso
+- 📨 Enviar mensajes a topics
+
+**Ejemplos de preguntas:**
+- "¿Cuál es mi balance de HBAR?"
+- "Transfiere 10 HBAR a la cuenta 0.0.123456"
+- "Crea una nueva cuenta con 5 HBAR de balance inicial"
+- "Crea un token fungible llamado MiToken con símbolo MTK"
 
 ## 📋 Requisitos Previos
 
@@ -16,7 +33,12 @@ Chat en tiempo real usando Hedera Consensus Service (HCS) para almacenar mensaje
    - Crea una cuenta en: https://portal.hedera.com/
    - Obten tu `ACCOUNT_ID` y `PRIVATE_KEY`
 
-2. Node.js 18+ instalado
+2. OpenAI API Key (para AI Agent)
+   - Crea una cuenta en: https://platform.openai.com/
+   - Genera una API key en: https://platform.openai.com/api-keys
+   - **Nota**: El chat funciona sin OpenAI, pero el AI Agent estará deshabilitado
+
+3. Node.js 18+ instalado
 
 ## 🛠️ Instalación Local
 
@@ -31,10 +53,11 @@ npm install
 cp .env.example .env
 ```
 
-Edita el archivo `.env` y agrega tus credenciales de Hedera:
+Edita el archivo `.env` y agrega tus credenciales:
 ```
 ACCOUNT_ID=0.0.YOUR_ACCOUNT_ID
 PRIVATE_KEY=YOUR_PRIVATE_KEY_ECDSA
+OPENAI_API_KEY=sk-your-openai-key-here
 PORT=3000
 ```
 
@@ -70,6 +93,7 @@ http://localhost:3000
 6. Agrega las variables de entorno:
    - `ACCOUNT_ID`: tu Account ID de Hedera
    - `PRIVATE_KEY`: tu Private Key de Hedera
+   - `OPENAI_API_KEY`: tu OpenAI API Key
    - `TOPIC_ID`: (opcional) si ya tienes un topic creado
 
 7. Click en "Create Web Service"
@@ -86,14 +110,18 @@ render create web --name hedera-chat \
 
 ## 📝 Cómo Funciona
 
-1. **Servidor**: Express + Socket.io manejan las conexiones en tiempo real
+### Modo Chat Normal
+1. Usuario escribe mensaje → WebSocket al servidor
+2. Servidor envía mensaje → Hedera Topic (blockchain)
+3. Hedera notifica → Servidor recibe el mensaje
+4. Servidor emite → Todos los usuarios conectados lo ven
 
-2. **Hedera Service**: 
-   - Crea un Topic en Hedera Consensus Service (HCS) si no existe
-   - Envía mensajes al topic (cada mensaje es una transacción en blockchain)
-   - Se suscribe al topic para recibir mensajes en tiempo real
-
-3. **Cliente**: Interfaz HTML que se conecta via WebSocket y muestra mensajes
+### Modo AI Agent
+1. Usuario hace pregunta → WebSocket al servidor
+2. Servidor envía pregunta → AI Agent (OpenAI + Langchain)
+3. AI Agent ejecuta → Herramientas de Hedera según necesite
+4. AI Agent responde → Respuesta se guarda en blockchain
+5. Todos los usuarios ven la interacción completa
 
 ## 🔧 Arquitectura
 
@@ -101,15 +129,15 @@ render create web --name hedera-chat \
 Cliente (Browser)
     ↕ WebSocket
 Servidor Express + Socket.io
-    ↕ Hedera SDK
-Hedera Consensus Service (HCS)
+    ↕ Hedera SDK        ↕ AI Agent (Langchain + OpenAI)
+Hedera Consensus Service (HCS) + Hedera Toolkit
 ```
 
-Cada mensaje del chat:
-- Se envía via WebSocket al servidor
-- El servidor lo publica en el Topic de Hedera
-- Hedera almacena el mensaje en blockchain
-- Todos los clientes suscritos reciben el mensaje en tiempo real
+**Componentes:**
+- `index.js`: Servidor Express + Socket.io
+- `hederaService.js`: Manejo de HCS (topics y mensajes)
+- `aiAgent.js`: Agente AI con herramientas de Hedera
+- `public/index.html`: Interfaz del chat con dos modos
 
 ## 💡 Ventajas de Usar Hedera
 

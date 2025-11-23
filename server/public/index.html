@@ -78,12 +78,21 @@
             margin-bottom: 3px;
         }
 
+        .message.ai-message .username {
+            color: #e91e63;
+        }
+
         .message .text {
             background: white;
             padding: 10px 15px;
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             word-wrap: break-word;
+        }
+
+        .message.ai-message .text {
+            background: linear-gradient(135deg, #ffeef5 0%, #fff0f8 100%);
+            border-left: 3px solid #e91e63;
         }
 
         .message .timestamp {
@@ -157,8 +166,9 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🌐 Hedera Chat</h1>
+            <h1>🌐 Hedera AI Chat</h1>
             <div class="topic-id">Topic ID: <span id="topicId">Connecting...</span></div>
+            <div class="topic-id" style="font-size: 11px;">🤖 Powered by OpenAI + Hedera Blockchain</div>
         </div>
         
         <div class="messages" id="messages">
@@ -182,10 +192,10 @@
                 <input 
                     type="text" 
                     id="messageInput" 
-                    placeholder="Escribe tu mensaje..." 
-                    maxlength="200"
+                    placeholder="Pregunta al AI sobre Hedera..." 
+                    maxlength="500"
                 />
-                <button onclick="sendMessage()">Enviar</button>
+                <button onclick="sendMessage()" id="sendButton">Enviar</button>
             </div>
         </div>
     </div>
@@ -201,6 +211,7 @@
         const usernameInput = document.getElementById('username');
         const statusDiv = document.getElementById('status');
         const topicIdSpan = document.getElementById('topicId');
+        const sendButton = document.getElementById('sendButton');
 
         // Conexión establecida
         socket.on('connect', () => {
@@ -235,6 +246,9 @@
         function displayMessage(data) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
+            if (data.isAI || data.username.includes('AI Agent')) {
+                messageDiv.className += ' ai-message';
+            }
             
             const timestamp = new Date(data.timestamp).toLocaleTimeString('es-ES');
             
@@ -254,7 +268,7 @@
             }
         }
 
-        // Enviar mensaje
+        // Enviar mensaje (siempre procesa con AI)
         function sendMessage() {
             const message = messageInput.value.trim();
             const username = usernameInput.value.trim() || 'Anónimo';
