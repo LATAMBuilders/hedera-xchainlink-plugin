@@ -13,6 +13,7 @@ import { Client, PrivateKey } from '@hashgraph/sdk';
 import { StructuredTool } from '@langchain/core/tools';
 import { config } from 'dotenv';
 import { IAIAgent, AgentResponse, ToolUsageStep } from '../types';
+import { chainlinkService } from './ChainlinkService';
 
 config();
 
@@ -97,6 +98,43 @@ Puedes ayudar con estas operaciones en Hedera:
 - Crear topics para mensajería
 - Enviar mensajes a topics
 
+📊 Precios de Chainlink (Oráculos en Tiempo Real):
+- Consultar precio de BTC, ETH, HBAR, LINK, USDC, USDT, DAI
+- Ver todos los precios disponibles
+- Información actualizada desde contratos Chainlink en Hedera
+
+EJEMPLOS DE COMANDOS QUE PUEDES USAR:
+
+🔍 Consultas de Blockchain:
+- "cuál es mi saldo"
+- "mi balance de HBAR"
+- "información de la cuenta 0.0.7307100"
+- "balance de tokens"
+
+💸 Transacciones:
+- "transfiere 5 HBAR a 0.0.1234"
+- "envía 10 HBAR a la cuenta 0.0.5678"
+- "crea una nueva cuenta"
+- "crea un token llamado MiToken con símbolo MTK"
+
+📝 Mensajería:
+- "crea un topic"
+- "envía el mensaje 'Hola mundo'"
+- "publica un mensaje en el topic"
+
+📊 Precios de Chainlink:
+- "precio de bitcoin" o "cuánto vale BTC"
+- "precio de ethereum" o "cotización de ETH"
+- "precio de HBAR"
+- "cuánto vale LINK"
+- "precio del DAI"
+- "todos los precios" o "lista de precios"
+- "precios disponibles"
+
+❓ Ayuda:
+- "ayuda" o "qué puedes hacer"
+- "comandos disponibles"
+
 INSTRUCCIONES IMPORTANTES:
 - Cuando pregunten "qué necesitas para X", explica claramente los parámetros requeridos
 - Para transferencias: necesitas la cuenta destino y el monto en HBAR
@@ -157,6 +195,12 @@ Tú: [usas TRANSFER_HBAR_TOOL y reportas el resultado]`,
     }
 
     try {
+      // Interceptar consultas de precios de Chainlink
+      const priceResponse = await this.handlePriceQuery(userMessage);
+      if (priceResponse) {
+        return priceResponse;
+      }
+
       console.log(`\n🤔 Processing: "${userMessage}"`);
 
       const response = (await this.agentExecutor.invoke({
@@ -195,5 +239,112 @@ Tú: [usas TRANSFER_HBAR_TOOL y reportas el resultado]`,
 
   isReady(): boolean {
     return this.isInitialized;
+  }
+
+  private async handlePriceQuery(message: string): Promise<string | null> {
+    const lowerMsg = message.toLowerCase();
+    
+    // Detectar palabras clave de consultas de precios (ampliado)
+    const priceKeywords = [
+      'precio', 'cotiza', 'vale', 'cuesta', 'cuánto', 'cuanto',
+      'dame', 'dime', 'consulta', 'muestra', 'ver', 'busca',
+      'cotización', 'valor', 'cost', 'price'
+    ];
+    const isPriceQuery = priceKeywords.some(keyword => lowerMsg.includes(keyword));
+    
+    if (!isPriceQuery) {
+      return null;
+    }
+
+    try {
+      // Mapeo mejorado de palabras clave a pares
+      const cryptoMap: Record<string, 'BTC/USD' | 'ETH/USD' | 'HBAR/USD' | 'LINK/USD' | 'USDC/USD' | 'USDT/USD' | 'DAI/USD'> = {
+        // Bitcoin
+        'btc': 'BTC/USD',
+        'bitcoin': 'BTC/USD',
+        'bit': 'BTC/USD',
+        
+        // Ethereum
+        'eth': 'ETH/USD',
+        'ethereum': 'ETH/USD',
+        'ether': 'ETH/USD',
+        
+        // Hedera
+        'hbar': 'HBAR/USD',
+        'hedera': 'HBAR/USD',
+        
+        // Chainlink
+        'link': 'LINK/USD',
+        'chainlink': 'LINK/USD',
+        
+        // Stablecoins
+        'usdc': 'USDC/USD',
+        'usd coin': 'USDC/USD',
+        'usdt': 'USDT/USD',
+        'tether': 'USDT/USD',
+        'dai': 'DAI/USD'
+      };
+
+      // Buscar coincidencia en el mensaje
+      for (const [keyword, pair] of Object.entries(cryptoMap)) {
+        if (lowerMsg.includes(keyword)) {
+          const price = await chainlinkService.getPriceFeed(pair);
+          
+          // Iconos personalizados
+          const icons: Record<string, string> = {
+            'BTC/USD': '₿',
+            'ETH/USD': 'Ξ',
+            'HBAR/USD': 'ℏ',
+            'LINK/USD': '🔗',
+            'USDC/USD': '💵',
+            'USDT/USD': '💵',
+            'DAI/USD': '💵'
+          };
+          
+          const icon = icons[pair];
+          const cryptoName = pair.split('/')[0];
+          
+          let additionalInfo = '';
+          if (['USDC/USD', 'USDT/USD', 'DAI/USD'].includes(pair)) {
+            additionalInfo = '\n💡 Stablecoin vinculado al dólar';
+          } else {
+            additionalInfo = `\n\n💡 Prueba también: "todos los precios", "precio de ${cryptoName === 'BTC' ? 'ETH' : 'BTC'}"`;
+          }
+          
+          return `${icon} **${pair.replace('/', ' / ')}**\n💵 Precio actual: **$${price.formattedPrice}**\n🕐 Actualizado: ${new Date(price.updatedAt).toLocaleString('es-ES')}\n📍 Fuente: Chainlink Oracle en Hedera Testnet${additionalInfo}`;
+        }
+      }
+
+      // Todos los precios
+      if (lowerMsg.includes('todos') || lowerMsg.includes('lista') || lowerMsg.includes('disponible')) {
+        const prices = await chainlinkService.getAllPrices();
+        let response = '📊 **Precios en Tiempo Real (Chainlink - Hedera Testnet)**\n\n';
+        
+        prices.forEach((price: any) => {
+          const icon = price.pair.includes('BTC') ? '₿' :
+                      price.pair.includes('ETH') ? 'Ξ' :
+                      price.pair.includes('HBAR') ? 'ℏ' :
+                      price.pair.includes('LINK') ? '🔗' : '💵';
+          response += `${icon} **${price.pair}**: $${price.formattedPrice}\n`;
+        });
+        
+        response += `\n🕐 Actualizado: ${new Date().toLocaleString('es-ES')}`;
+        response += `\n\n💡 Tip: Visita http://localhost:3000/prices para la interfaz completa`;
+        return response;
+      }
+
+      // Si menciona precio pero no especifica cuál
+      return '📊 Puedo consultar precios en tiempo real de:\n\n' +
+             '₿ BTC (Bitcoin)\n' +
+             'Ξ ETH (Ethereum)\n' +
+             'ℏ HBAR (Hedera)\n' +
+             '🔗 LINK (Chainlink)\n' +
+             '💵 USDC, USDT, DAI (Stablecoins)\n\n' +
+             '¿Cuál te interesa? También puedes decir "todos los precios" 😊';
+      
+    } catch (error) {
+      console.error('❌ Error fetching Chainlink price:', error);
+      return '❌ Error al consultar el precio desde Chainlink. Por favor intenta de nuevo.';
+    }
   }
 }

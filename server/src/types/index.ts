@@ -98,6 +98,25 @@ export interface MessagesResponse {
   message: string;
 }
 
+// ==================== Chainlink Types ====================
+
+export interface PriceFeedData {
+  pair: string;
+  address: string;
+  price: number;
+  formattedPrice: string;
+  decimals: number;
+  roundId: string;
+  updatedAt: string;
+}
+
+export interface PricesResponse {
+  success: boolean;
+  data?: PriceFeedData[];
+  error?: string;
+  timestamp: string;
+}
+
 // ==================== Utility Types ====================
 
 export type NetworkType = 'testnet' | 'mainnet' | 'previewnet';
