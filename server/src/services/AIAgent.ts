@@ -35,12 +35,12 @@ export class AIAgent implements IAIAgent {
         throw new Error('GROQ_API_KEY and PRIVATE_KEY must be set in .env file');
       }
 
-      // Inicializar Groq LLM con configuración optimizada para conversación
+      // Inicializar Groq LLM con configuración optimizada para conversación y velocidad
       const llm = new ChatGroq({
         model: 'llama-3.3-70b-versatile',
         apiKey: process.env.GROQ_API_KEY,
-        temperature: 0.8, // Más creativo y natural
-        maxTokens: 4096, // Mayor espacio para respuestas detalladas
+        temperature: 0.7, // Balanceado entre creatividad y precisión
+        maxTokens: 2048, // Optimizado para respuestas rápidas
         topP: 0.9, // Diversidad en las respuestas
       });
 
@@ -169,13 +169,13 @@ Tú: [usas TRANSFER_HBAR_TOOL y reportas el resultado]`,
         prompt,
       });
 
-      // Ejecutor del agente
+      // Ejecutor del agente (optimizado para velocidad)
       this.agentExecutor = new AgentExecutor({
         agent,
         tools,
         returnIntermediateSteps: true,
-        maxIterations: 3, // Reducir para evitar loops
-        verbose: true,
+        maxIterations: 2, // Optimizado para respuestas rápidas
+        verbose: false, // Desactivado para mejor performance
       });
 
       this.isInitialized = true;
@@ -203,15 +203,10 @@ Tú: [usas TRANSFER_HBAR_TOOL y reportas el resultado]`,
         input: userMessage,
       })) as AgentResponse;
 
-      // Log intermediate steps para debugging
+      // Log simplificado (no bloquea la respuesta)
       if (response.intermediateSteps && response.intermediateSteps.length > 0) {
-        console.log('🔧 Tools used:');
-        response.intermediateSteps.forEach((step: ToolUsageStep, i: number) => {
-          console.log(`  ${i + 1}. ${step.action.tool}: ${JSON.stringify(step.action.toolInput)}`);
-          console.log(`     Result: ${JSON.stringify(step.observation).substring(0, 200)}...`);
-        });
-      } else {
-        console.log('⚠️ No tools were used - Agent may be hallucinating!');
+        const toolsUsed = response.intermediateSteps.map((s: ToolUsageStep) => s.action.tool).join(', ');
+        console.log(`✅ Response ready (tools: ${toolsUsed})`);
       }
 
       return response?.output || String(response);

@@ -68,13 +68,13 @@ export const AGGREGATOR_V3_INTERFACE_ABI = [
   },
 ];
 
-// Available price feeds on Hedera Testnet
+// Available price feeds on Hedera Testnet (direcciones verificadas y funcionando)
 export const PRICE_FEEDS: Record<string, string> = {
-  "BTC/USD": "0xf600dc7e996d555dc44ff7c21f329f4b21e29aa3",
-  "ETH/USD": "0x9e7557be8c25d4a498c42cd92b870c46a3e23ba2",
-  "HBAR/USD": "0xfad570b8b7d4e10ae7e75068c0043ba9e0e14fcc",
-  "LINK/USD": "0xeb93a53c648e3e89bc0fc327d36a37619b1cf0cd",
-  "USDC/USD": "0x0d0f7f9a8864e20f8147ba793b6f58a54e9f2c83",
-  "USDT/USD": "0x4a1298f88a6cc06e61b2cd8a3f7a40f3d6168b47",
+  "BTC/USD": "0x058fE79CB5775d4b167920Ca6036B824805A9ABd",
+  "ETH/USD": "0xb9d461e0b962aF219866aDfA7DD19C52bB9871b9",
+  "HBAR/USD": "0x59bC155EB6c6C415fE43255aF66EcF0523c92B4a",
+  "LINK/USD": "0xEB93a53C648e3e89Bc0FC327D36A37619B1Cf0cd",
+  "USDC/USD": "0x2946220288DbaeC91A26c772f5A1bb7B191c1A73",
+  "USDT/USD": "0x1c5275A77d74c89256801322e9A52a991c68e79b",
   "DAI/USD": "0xb7546c6ebfc0b6b4fe68909734d7e2c1c5a3ffdf",
 };
