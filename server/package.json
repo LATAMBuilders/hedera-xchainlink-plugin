@@ -1,0 +1,29 @@
+{
+  "name": "hedera-chat-server",
+  "version": "1.0.0",
+  "description": "Chat simple con Hedera Consensus Service y Express",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "hedera",
+    "chat",
+    "express",
+    "websocket"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@hashgraph/sdk": "^2.49.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "nodemon": "^3.1.11",
+    "socket.io": "^4.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
