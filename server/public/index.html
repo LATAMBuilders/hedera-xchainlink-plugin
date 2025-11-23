@@ -167,18 +167,16 @@
     <div class="container">
         <div class="header">
             <h1>🌐 Hedera AI Chat</h1>
-            <div class="topic-id">Topic ID: <span id="topicId">Connecting...</span></div>
-            <div class="topic-id" style="font-size: 11px;">🤖 Powered by OpenAI + Hedera Blockchain</div>
+            <div class="topic-id">🤖 Powered by Groq (Llama 3.3) + Hedera Blockchain</div>
         </div>
         
         <div class="messages" id="messages">
             <div style="text-align: center; color: #999; padding: 20px;">
-                Esperando mensajes del blockchain...
+                Haz tu primera pregunta al AI Agent...
             </div>
         </div>
         
         <div class="input-area">
-            <div class="status" id="status">Conectando...</div>
             <div class="input-row">
                 <input 
                     type="text" 
@@ -200,53 +198,18 @@
         </div>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
-        let isConnected = false;
-
         // Elementos del DOM
         const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const usernameInput = document.getElementById('username');
-        const statusDiv = document.getElementById('status');
-        const topicIdSpan = document.getElementById('topicId');
         const sendButton = document.getElementById('sendButton');
-
-        // Conexión establecida
-        socket.on('connect', () => {
-            isConnected = true;
-            statusDiv.textContent = '✅ Conectado';
-            statusDiv.className = 'status connected';
-        });
-
-        // Desconexión
-        socket.on('disconnect', () => {
-            isConnected = false;
-            statusDiv.textContent = '❌ Desconectado';
-            statusDiv.className = 'status disconnected';
-        });
-
-        // Recibir Topic ID
-        socket.on('topicId', (topicId) => {
-            topicIdSpan.textContent = topicId;
-        });
-
-        // Recibir nuevo mensaje
-        socket.on('newMessage', (data) => {
-            displayMessage(data);
-        });
-
-        // Error
-        socket.on('error', (error) => {
-            alert('Error: ' + error);
-        });
 
         // Mostrar mensaje en el chat
         function displayMessage(data) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
-            if (data.isAI || data.username.includes('AI Agent')) {
+            if (data.username.includes('AI Agent')) {
                 messageDiv.className += ' ai-message';
             }
             
@@ -262,26 +225,63 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
             // Limpiar mensaje inicial si existe
-            if (messagesDiv.children.length > 1 && 
-                messagesDiv.children[0].textContent.includes('Esperando mensajes')) {
-                messagesDiv.children[0].remove();
+            const firstChild = messagesDiv.children[0];
+            if (firstChild && firstChild.textContent.includes('primera pregunta')) {
+                firstChild.remove();
             }
         }
 
-        // Enviar mensaje (siempre procesa con AI)
-        function sendMessage() {
+        // Enviar mensaje y obtener respuesta
+        async function sendMessage() {
             const message = messageInput.value.trim();
-            const username = usernameInput.value.trim() || 'Anónimo';
+            const username = usernameInput.value.trim() || 'Usuario';
 
-            if (message && isConnected) {
-                socket.emit('chatMessage', { username, message });
-                messageInput.value = '';
+            if (!message) return;
+
+            // Deshabilitar botón mientras procesa
+            sendButton.disabled = true;
+            sendButton.textContent = '⏳ Procesando...';
+            messageInput.value = '';
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, message }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al procesar el mensaje');
+                }
+
+                const data = await response.json();
+
+                // Mostrar mensaje del usuario
+                displayMessage(data.userMessage);
+
+                // Mostrar respuesta del AI
+                displayMessage(data.aiResponse);
+
+            } catch (error) {
+                console.error('Error:', error);
+                displayMessage({
+                    username: 'Sistema',
+                    message: '❌ Error: ' + error.message,
+                    timestamp: new Date().toISOString()
+                });
+            } finally {
+                // Rehabilitar botón
+                sendButton.disabled = false;
+                sendButton.textContent = 'Enviar';
+                messageInput.focus();
             }
         }
 
         // Enter para enviar
         messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !sendButton.disabled) {
                 sendMessage();
             }
         });
@@ -292,6 +292,11 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // Focus en el input al cargar
+        window.onload = () => {
+            messageInput.focus();
+        };
     </script>
 </body>
 </html>

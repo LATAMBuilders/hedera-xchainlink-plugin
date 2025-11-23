@@ -1,17 +1,14 @@
 const {
   AgentMode,
-  coreAccountPluginToolNames,
-  coreAccountQueryPluginToolNames,
-  coreConsensusPluginToolNames,
-  coreConsensusQueryPluginToolNames,
-  coreTokenPluginToolNames,
-  coreTokenQueryPluginToolNames,
   HederaLangchainToolkit,
+  coreAccountPlugin,
+  coreConsensusPlugin,
+  coreTokenPlugin,
+  coreQueriesPlugin,
 } = require('hedera-agent-kit');
-const { ChatOpenAI } = require('@langchain/openai');
+const { ChatGroq } = require('@langchain/groq');
 const { ChatPromptTemplate } = require('@langchain/core/prompts');
 const { createToolCallingAgent, AgentExecutor } = require('langchain/agents');
-const { BufferMemory } = require('langchain/memory');
 const { Client, PrivateKey } = require('@hashgraph/sdk');
 require('dotenv').config();
 
@@ -23,10 +20,12 @@ class AIAgent {
 
   async initialize() {
     try {
-      // Inicializar OpenAI LLM
-      const llm = new ChatOpenAI({
-        model: 'gpt-4o-mini',
-        apiKey: process.env.OPENAI_API_KEY,
+      // Inicializar Groq LLM
+      const llm = new ChatGroq({
+        model: 'llama-3.3-70b-versatile',
+        apiKey: process.env.GROQ_API_KEY,
+        temperature: 0.7,
+        maxTokens: 2048,
       });
 
       // Hedera client setup
@@ -35,32 +34,16 @@ class AIAgent {
         PrivateKey.fromStringECDSA(process.env.PRIVATE_KEY)
       );
 
-      // Herramientas disponibles
-      const {
-        TRANSFER_HBAR_TOOL,
-        CREATE_ACCOUNT_TOOL,
-        GET_HBAR_BALANCE_QUERY_TOOL,
-        GET_ACCOUNT_QUERY_TOOL,
-      } = coreAccountPluginToolNames;
-
-      const { CREATE_TOPIC_TOOL, SUBMIT_TOPIC_MESSAGE_TOOL } = coreConsensusPluginToolNames;
-      
-      const { CREATE_FUNGIBLE_TOKEN_TOOL } = coreTokenPluginToolNames;
-
-      // Preparar Hedera toolkit
+      // Preparar Hedera toolkit con plugins completos
       const hederaAgentToolkit = new HederaLangchainToolkit({
         client,
         configuration: {
-          tools: [
-            TRANSFER_HBAR_TOOL,
-            CREATE_ACCOUNT_TOOL,
-            GET_HBAR_BALANCE_QUERY_TOOL,
-            GET_ACCOUNT_QUERY_TOOL,
-            CREATE_TOPIC_TOOL,
-            SUBMIT_TOPIC_MESSAGE_TOOL,
-            CREATE_FUNGIBLE_TOKEN_TOOL,
+          plugins: [
+            coreAccountPlugin,
+            coreConsensusPlugin,
+            coreTokenPlugin,
+            coreQueriesPlugin,
           ],
-          plugins: [],
           context: {
             mode: AgentMode.AUTONOMOUS,
           },
@@ -71,18 +54,26 @@ class AIAgent {
       const prompt = ChatPromptTemplate.fromMessages([
         [
           'system',
-          `Eres un asistente experto en Hedera blockchain. Puedes ayudar a los usuarios a:
-- Consultar balances de HBAR
-- Transferir HBAR entre cuentas
-- Crear cuentas nuevas
-- Crear tokens fungibles
-- Crear topics de consenso
-- Enviar mensajes a topics
+          `Eres un asistente experto en Hedera blockchain.
 
-Responde de manera concisa y amigable. Si no puedes hacer algo, explica por qué.
-Cuando hagas transacciones, siempre confirma los resultados al usuario.`,
+CUENTA DEL USUARIO: ${process.env.ACCOUNT_ID}
+
+INSTRUCCIONES CRÍTICAS:
+- SIEMPRE usa las herramientas disponibles cuando el usuario solicite información o acciones
+- NUNCA inventes datos, siempre consulta con las herramientas
+- Para consultar el saldo, usa GET_HBAR_BALANCE_QUERY_TOOL con accountId: "${process.env.ACCOUNT_ID}"
+- Responde en español de manera concisa y clara
+- Después de usar una herramienta, reporta directamente el resultado sin repetir la llamada
+
+Herramientas disponibles:
+- GET_HBAR_BALANCE_QUERY_TOOL: Consulta el balance de HBAR
+- GET_ACCOUNT_QUERY_TOOL: Información de cuenta
+- TRANSFER_HBAR_TOOL: Transfiere HBAR
+- CREATE_ACCOUNT_TOOL: Crea cuentas
+- CREATE_FUNGIBLE_TOKEN_TOOL: Crea tokens
+- CREATE_TOPIC_TOOL: Crea topics
+- SUBMIT_TOPIC_MESSAGE_TOOL: Envía mensajes a topics`,
         ],
-        ['placeholder', '{chat_history}'],
         ['human', '{input}'],
         ['placeholder', '{agent_scratchpad}'],
       ]);
@@ -97,25 +88,19 @@ Cuando hagas transacciones, siempre confirma los resultados al usuario.`,
         prompt,
       });
 
-      // Memoria para conversación
-      const memory = new BufferMemory({
-        memoryKey: 'chat_history',
-        inputKey: 'input',
-        outputKey: 'output',
-        returnMessages: true,
-      });
-
       // Ejecutor del agente
       this.agentExecutor = new AgentExecutor({
         agent,
         tools,
-        memory,
-        returnIntermediateSteps: false,
-        maxIterations: 5,
+        returnIntermediateSteps: true,
+        maxIterations: 3, // Reducir para evitar loops
+        verbose: true,
       });
 
       this.isInitialized = true;
-      console.log('🤖 AI Agent initialized with Hedera tools');
+      console.log('🤖 AI Agent initialized with Hedera tools (Groq - Llama 3.3 70B)');
+      console.log(`📋 Available tools: ${tools.map(t => t.name).join(', ')}`);
+      console.log(`👤 User Account ID: ${process.env.ACCOUNT_ID}`);
       
       return true;
     } catch (error) {
@@ -130,13 +115,36 @@ Cuando hagas transacciones, siempre confirma los resultados al usuario.`,
     }
 
     try {
+      console.log(`\n🤔 Processing: "${userMessage}"`);
+      
       const response = await this.agentExecutor.invoke({ 
         input: userMessage 
       });
       
+      // Log intermediate steps para debugging
+      if (response.intermediateSteps && response.intermediateSteps.length > 0) {
+        console.log('🔧 Tools used:');
+        response.intermediateSteps.forEach((step, i) => {
+          console.log(`  ${i + 1}. ${step.action.tool}: ${JSON.stringify(step.action.toolInput)}`);
+          console.log(`     Result: ${JSON.stringify(step.observation).substring(0, 200)}...`);
+        });
+      } else {
+        console.log('⚠️ No tools were used - Agent may be hallucinating!');
+      }
+      
       return response?.output || response;
     } catch (error) {
       console.error('❌ Error processing message:', error);
+      
+      // Manejo específico de errores comunes
+      if (error.message?.includes('rate_limit') || error.message?.includes('429')) {
+        throw new Error('⚠️ Rate limit alcanzado. Por favor espera un momento e intenta de nuevo.');
+      } else if (error.message?.includes('insufficient_quota')) {
+        throw new Error('⚠️ Sin créditos. Verifica tu cuenta.');
+      } else if (error.message?.includes('invalid_api_key')) {
+        throw new Error('⚠️ API Key inválida. Verifica tu configuración.');
+      }
+      
       throw error;
     }
   }
