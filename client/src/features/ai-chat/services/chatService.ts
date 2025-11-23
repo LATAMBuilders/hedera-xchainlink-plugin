@@ -8,7 +8,7 @@ export const sendMessageToAI = async (messages: Message[]): Promise<string> => {
   const lastMessage = messages[messages.length - 1].content.toLowerCase();
 
   if (lastMessage.includes('btc') || lastMessage.includes('price')) {
-    return "The current price of BTC is $86,240.";
+    return "The current price of BTC is $86,240.00 USD";
   }
   
   return "I can process that request using the `hedera-xchainlink-plugin`. Try asking about cryptocurrency prices or data from Chainlink oracles on Hedera!";
