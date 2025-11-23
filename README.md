@@ -5,6 +5,8 @@ Este repositorio contiene una aplicación full-stack que demuestra la integraci�
 El núcleo de esta integración está disponible como un paquete npm independiente:
 👉 **[hedera-chainlink-plugin](https://www.npmjs.com/package/hedera-chainlink-plugin)**
 
+ **[Repositorio hedera-chainlink-plugin](https://github.com/BMPaiba/hedera-chainlik-plugin)**
+
 ## 🏗️ Arquitectura del Proyecto
 
 El proyecto está dividido en dos partes principales:
