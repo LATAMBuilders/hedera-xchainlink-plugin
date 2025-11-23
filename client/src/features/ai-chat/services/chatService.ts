@@ -1,6 +1,6 @@
 import { Message } from '../types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://hedera-xchainlink-plugin.onrender.com//api/chat';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://hedera-xchainlink-plugin.onrender.com/api/chat';
 
 export const sendMessageToAI = async (messages: Message[]): Promise<string> => {
   const lastMessage = messages[messages.length - 1];
