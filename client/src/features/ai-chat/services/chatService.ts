@@ -1,15 +1,29 @@
 import { Message } from '../types';
 
-// Mock AI service simulating hedera-xchainlink-plugin interactions
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://hedera-xchainlink-plugin.onrender.com//api/chat';
+
 export const sendMessageToAI = async (messages: Message[]): Promise<string> => {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  const lastMessage = messages[messages.length - 1];
+  const content = lastMessage.content;
+  const username = lastMessage.username || 'User';
 
-  const lastMessage = messages[messages.length - 1].content.toLowerCase();
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, message: content }),
+    });
 
-  if (lastMessage.includes('btc') || lastMessage.includes('price')) {
-    return "The current price of BTC is $86,240.00 USD";
+    if (!response.ok) {
+      throw new Error('Error al procesar el mensaje');
+    }
+
+    const data = await response.json();
+    return data.aiResponse.message;
+  } catch (error) {
+    console.error('Error calling chat API:', error);
+    return "Error: Could not connect to the server. Please ensure the backend is running.";
   }
-  
-  return "I can process that request using the `hedera-xchainlink-plugin`. Try asking about cryptocurrency prices or data from Chainlink oracles on Hedera!";
 };
